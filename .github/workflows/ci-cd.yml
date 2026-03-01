@@ -67,23 +67,28 @@ jobs:
             ${{ env.FRONTEND_IMAGE }}:${{ github.sha }}
 
       # Étape 3 - Test avec Docker Compose
+      - name: Install Docker Compose plugin
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y docker-compose-plugin
+
       - name: Lancement de l'application
         run: |
-          docker-compose up -d
+          docker compose up -d
           sleep 15
 
       # Étape 3 - Vérification des conteneurs
       - name: Vérification des conteneurs
         run: |
-          docker-compose ps
+          docker compose ps
 
-          if [ "$(docker-compose ps -q backend | wc -l)" -eq 0 ]; then
-            docker-compose logs backend
+          if [ "$(docker compose ps -q backend | wc -l)" -eq 0 ]; then
+            docker compose logs backend
             exit 1
           fi
 
-          if [ "$(docker-compose ps -q frontend | wc -l)" -eq 0 ]; then
-            docker-compose logs frontend
+          if [ "$(docker compose ps -q frontend | wc -l)" -eq 0 ]; then
+            docker compose logs frontend
             exit 1
           fi
 
@@ -91,10 +96,10 @@ jobs:
       - name: Test de communication
         run: |
           sleep 5
-          curl -f http://localhost:8081/health || docker-compose logs backend
-          curl -f http://localhost:4200 || docker-compose logs frontend
+          curl -f http://localhost:8081/health || docker compose logs backend
+          curl -f http://localhost:4200 || docker compose logs frontend
 
       # Nettoyage
       - name: Arrêt des conteneurs
         if: always()
-        run: docker-compose down -v
+        run: docker compose down -v
