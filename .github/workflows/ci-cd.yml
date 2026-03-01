@@ -41,6 +41,7 @@ jobs:
       - name: Build backend JAR
         working-directory: ./springboot/app
         run: |
+          chmod +x ./mvnw
           ./mvnw -B clean package -DskipTests
 
       # Étape 2 - Build et push de l'image backend
