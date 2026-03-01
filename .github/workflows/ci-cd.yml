@@ -13,7 +13,7 @@ env:
 
 jobs:
   build-and-deploy:
-    runs-on: ubuntu-latest
+    runs-on: windows-latest
 
     steps:
       # Étape 1 - Récupération du code
@@ -40,9 +40,9 @@ jobs:
 
       - name: Build backend JAR
         working-directory: ./springboot/app
+        shell: pwsh
         run: |
-          chmod +x ./mvnw
-          ./mvnw -B clean package -DskipTests
+          .\mvnw.cmd -B clean package -DskipTests
 
       # Étape 2 - Build et push de l'image backend
       - name: Build et push backend
@@ -67,38 +67,57 @@ jobs:
             ${{ env.FRONTEND_IMAGE }}:${{ github.sha }}
 
       - name: Pull and tag images for docker-compose
+        shell: pwsh
         run: |
-          docker pull ${{ env.BACKEND_IMAGE }}:latest || true
-          docker tag ${{ env.BACKEND_IMAGE }}:latest nouran10/spring-boot-app || true
-          docker pull ${{ env.FRONTEND_IMAGE }}:latest || true
-          docker tag ${{ env.FRONTEND_IMAGE }}:latest nouran10/angular-app || true
+          docker pull "${env:BACKEND_IMAGE}:latest"
+          if ($LASTEXITCODE -ne 0) { Write-Host 'backend image pull failed, continuing' }
+          docker tag "${env:BACKEND_IMAGE}:latest" nouran10/spring-boot-app
+          docker pull "${env:FRONTEND_IMAGE}:latest"
+          if ($LASTEXITCODE -ne 0) { Write-Host 'frontend image pull failed, continuing' }
+          docker tag "${env:FRONTEND_IMAGE}:latest" nouran10/angular-app
       # Étape 3 - Test avec Docker Compose
       - name: Lancement de l'application
+        shell: pwsh
         run: |
           docker compose up -d
-          sleep 15
+          Start-Sleep -Seconds 15
 
       # Étape 3 - Vérification des conteneurs
       - name: Vérification des conteneurs
+        shell: pwsh
         run: |
           docker compose ps
 
-          if [ "$(docker compose ps -q spring-boot-app | wc -l)" -eq 0 ]; then
+          $backendIds = docker compose ps -q spring-boot-app
+          if ([string]::IsNullOrWhiteSpace($backendIds)) {
             docker compose logs spring-boot-app
             exit 1
-          fi
+          }
 
-          if [ "$(docker compose ps -q angular-app | wc -l)" -eq 0 ]; then
+          $frontendIds = docker compose ps -q angular-app
+          if ([string]::IsNullOrWhiteSpace($frontendIds)) {
             docker compose logs angular-app
             exit 1
-          fi
+          }
 
       # Étape 3 - Test de communication
       - name: Test de communication
+        shell: pwsh
         run: |
-          sleep 5
-          curl -f http://localhost:8081/health || docker compose logs springboot
-          curl -f http://localhost:4200 || docker compose logs angular-app
+          Start-Sleep -Seconds 5
+          try {
+            Invoke-WebRequest 'http://localhost:8081/health' -UseBasicParsing -ErrorAction Stop
+          } catch {
+            docker compose logs spring-boot-app
+            exit 1
+          }
+
+          try {
+            Invoke-WebRequest 'http://localhost:4200' -UseBasicParsing -ErrorAction Stop
+          } catch {
+            docker compose logs angular-app
+            exit 1
+          }
 
       # Nettoyage
       - name: Arrêt des conteneurs
