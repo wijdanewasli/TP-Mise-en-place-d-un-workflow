@@ -41,6 +41,7 @@ jobs:
       - name: Build backend JAR
         working-directory: ./springboot/app
         run: |
+          chmod +x ./mvnw
           ./mvnw -B clean package -DskipTests
 
       # Étape 2 - Build et push de l'image backend
@@ -67,10 +68,10 @@ jobs:
 
       - name: Pull and tag images for docker-compose
         run: |
-          docker pull "$BACKEND_IMAGE:latest" || echo 'backend image pull failed, continuing'
-          docker tag "$BACKEND_IMAGE:latest" nouran10/spring-boot-app
-          docker pull "$FRONTEND_IMAGE:latest" || echo 'frontend image pull failed, continuing'
-          docker tag "$FRONTEND_IMAGE:latest" nouran10/angular-app
+          docker pull ${{ env.BACKEND_IMAGE }}:latest || true
+          docker tag ${{ env.BACKEND_IMAGE }}:latest nouran10/spring-boot-app || true
+          docker pull ${{ env.FRONTEND_IMAGE }}:latest || true
+          docker tag ${{ env.FRONTEND_IMAGE }}:latest nouran10/angular-app || true
       # Étape 3 - Test avec Docker Compose
       - name: Lancement de l'application
         run: |
@@ -82,14 +83,12 @@ jobs:
         run: |
           docker compose ps
 
-          backendIds=$(docker compose ps -q spring-boot-app)
-          if [ -z "$backendIds" ]; then
+          if [ "$(docker compose ps -q spring-boot-app | wc -l)" -eq 0 ]; then
             docker compose logs spring-boot-app
             exit 1
           fi
 
-          frontendIds=$(docker compose ps -q angular-app)
-          if [ -z "$frontendIds" ]; then
+          if [ "$(docker compose ps -q angular-app | wc -l)" -eq 0 ]; then
             docker compose logs angular-app
             exit 1
           fi
@@ -98,15 +97,8 @@ jobs:
       - name: Test de communication
         run: |
           sleep 5
-          if ! curl -f http://localhost:8081/health; then
-            docker compose logs spring-boot-app
-            exit 1
-          fi
-
-          if ! curl -f http://localhost:4200; then
-            docker compose logs angular-app
-            exit 1
-          fi
+          curl -f http://localhost:8081/health || docker compose logs springboot
+          curl -f http://localhost:4200 || docker compose logs angular-app
 
       # Nettoyage
       - name: Arrêt des conteneurs
