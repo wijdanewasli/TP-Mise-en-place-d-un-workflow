@@ -66,6 +66,12 @@ jobs:
             ${{ env.FRONTEND_IMAGE }}:latest
             ${{ env.FRONTEND_IMAGE }}:${{ github.sha }}
 
+      - name: Pull and tag images for docker-compose
+        run: |
+          docker pull ${{ env.BACKEND_IMAGE }}:latest || true
+          docker tag ${{ env.BACKEND_IMAGE }}:latest nouran10/spring-boot-app || true
+          docker pull ${{ env.FRONTEND_IMAGE }}:latest || true
+          docker tag ${{ env.FRONTEND_IMAGE }}:latest nouran10/angular-app || true
       # Étape 3 - Test avec Docker Compose
       - name: Lancement de l'application
         run: |
@@ -77,8 +83,8 @@ jobs:
         run: |
           docker compose ps
 
-          if [ "$(docker compose ps -q springboot | wc -l)" -eq 0 ]; then
-            docker compose logs springboot
+          if [ "$(docker compose ps -q spring-boot-app | wc -l)" -eq 0 ]; then
+            docker compose logs spring-boot-app
             exit 1
           fi
 
