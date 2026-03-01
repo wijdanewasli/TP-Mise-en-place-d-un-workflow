@@ -31,6 +31,18 @@ jobs:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
+      # Étape 2.1 - Installer JDK et construire le JAR backend
+      - name: Set up JDK 11
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '11'
+
+      - name: Build backend JAR
+        working-directory: ./springboot/app
+        run: |
+          ./mvnw -B clean package -DskipTests
+
       # Étape 2 - Build et push de l'image backend
       - name: Build et push backend
         uses: docker/build-push-action@v5
