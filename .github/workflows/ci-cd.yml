@@ -97,7 +97,7 @@ jobs:
       - name: Test de communication
         run: |
           sleep 5
-          curl -f http://localhost:8081/health || docker compose logs springboot
+          curl -f http://localhost:8081/user/all || docker compose logs spring-boot-app
           curl -f http://localhost:4200 || docker compose logs angular-app
 
       # Nettoyage
