@@ -67,11 +67,6 @@ jobs:
             ${{ env.FRONTEND_IMAGE }}:${{ github.sha }}
 
       # Étape 3 - Test avec Docker Compose
-      - name: Install Docker Compose plugin
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y docker-compose-plugin
-
       - name: Lancement de l'application
         run: |
           docker compose up -d
